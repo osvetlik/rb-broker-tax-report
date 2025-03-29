@@ -1,4 +1,4 @@
-# RB Broker Tax Reportér
+# RB Broker Daňový Reportér
 
 Investujete s Raiffeisenbank a přemýšlíte, jak z té tuny e-mailů jednou sestavíte podklady pro daňové přiznání?
 
