@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.Label?>
+<BorderPane xmlns:fx="http://javafx.com/fxml">
+	<left>
+		<VBox styleClass="sidebar">
+			<ToggleButton text="Home" contentDisplay="TOP" onAction="#showHome">
+				<graphic>
+					<Label text="🏠" />
+				</graphic>
+			</ToggleButton>
+			<ToggleButton text="Download" contentDisplay="TOP" onAction="#showDownload">
+				<graphic>
+					<Label text="⬇️" />
+				</graphic>
+			</ToggleButton>
+			<Region fx:id="spacer" VBox.vgrow="ALWAYS"/>
+			<ToggleButton text="Settings" contentDisplay="TOP" onAction="#showSettings">
+				<graphic>
+					<Label text="⚙️" />
+				</graphic>
+			</ToggleButton>
+			<ToggleButton text="Exit" contentDisplay="TOP" onAction="#onExit">
+				<graphic>
+					<Label text="👋" />
+				</graphic>
+			</ToggleButton>
+		</VBox>
+	</left>
+	<center>
+		<StackPane fx:id="contentArea"/>
+	</center>
+</BorderPane>
