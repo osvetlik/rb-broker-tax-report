@@ -25,9 +25,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ViewRegistryImpl implements ViewRegistry {
 
-	private static final String FXML_FILES_PATH = "/ui/fxml/";
-	private static final String FXML_FILE_EXTENSION = ".fxml";
-	private static final String CSS_FILES_PATH = "/ui/css/";
+	private static final String FXML_FILES_PATH = "/ui/fxml/"; // NOSONAR: why should I?
+	private static final String FXML_FILE_EXTENSION = ".xml";
+	private static final String CSS_FILES_PATH = "/ui/css/"; // NOSONAR: why should I?
 	private static final String CSS_FILE_EXTENSION = ".css";
 
 	private final ConfigurableApplicationContext springContext;
@@ -64,7 +64,7 @@ public class ViewRegistryImpl implements ViewRegistry {
 				return null;
 			}
 			final var name = fileName.substring(0, fileName.length() - extension.length());
-			log.info("Found view {}", name);
+			log.info("Found {} resource {} in {}", extension, name, fileName);
 			return new ResourcePair(name, url);
 		}
 		catch (IOException e) {
@@ -82,10 +82,15 @@ public class ViewRegistryImpl implements ViewRegistry {
 
 		final var loader = new FXMLLoader(StandardCharsets.UTF_8);
 		loader.setLocation(url);
-		loader.setController(springContext.getBean(controllerClass));
+		if (controllerClass != null) {
+			loader.setController(springContext.getBean(controllerClass));
+		}
 
 		try {
 			final Parent root = loader.load();
+			if (cssMap.containsKey(name)) {
+				root.getStylesheets().add(css(name));
+			}
 			final T controller = loader.getController();
 
 			return new View<>(root, controller);

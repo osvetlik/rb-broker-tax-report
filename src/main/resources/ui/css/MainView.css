@@ -1,0 +1,43 @@
+.sidebar {
+	-fx-pref-width: 100; /* or whatever fits */
+	-fx-background-color: #5e5e5e;
+}
+
+.sidebar>.toggle-button {
+	-fx-background-color: transparent;
+	-fx-alignment: CENTER;
+	-fx-text-fill: #efefef;
+	-fx-text-alignment: center;
+	-fx-padding: 10 15 10 15;
+	-fx-border-radius: 0;
+	-fx-background-radius: 0;
+	-fx-cursor: hand;
+	-fx-pref-height: 40;
+	-fx-font-size: 14px;
+	-fx-pref-width: 100; /* or whatever fits */
+}
+
+.sidebar>.toggle-button:selected {
+	-fx-background-color: #cecece;
+	-fx-text-fill: #000;
+}
+
+.sidebar > .toggle-button:focused {
+}
+
+.sidebar > .toggle-button:hover  {
+	-fx-background-color: #7e7e7e;
+}
+
+.sidebar .label {
+	-fx-font-size: 40px;
+	-fx-text-fill: #efefef;
+}
+
+.toggle-button:selected > .label {
+	-fx-text-fill: #d6a000;
+}
+
+.toggle-button:hover > .label {
+	-fx-text-fill: #e0bd55;
+}

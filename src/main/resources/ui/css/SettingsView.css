@@ -1,0 +1,17 @@
+Label.header {
+	-fx-font-size: 32;
+}
+
+VBox {
+	-fx-spacing: 10;
+	-fx-alignment: CENTER_LEFT;
+}
+
+HBox {
+	-fx-spacing: 10;
+  -fx-alignment: CENTER_LEFT;
+}
+
+HBox.no-gap {
+	-fx-spacing: 0;
+}

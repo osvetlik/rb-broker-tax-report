@@ -3,28 +3,32 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.control.Label?>
 <BorderPane xmlns:fx="http://javafx.com/fxml">
+	<fx:define>
+		<ToggleGroup fx:id="sidebarGroup" />
+	</fx:define>
 	<left>
 		<VBox styleClass="sidebar">
-			<ToggleButton text="Home" contentDisplay="TOP" onAction="#showHome">
+			<ToggleButton text="Home" contentDisplay="TOP" onAction="#showHome" toggleGroup="$sidebarGroup" selected="true">
 				<graphic>
 					<Label text="🏠" />
 				</graphic>
 			</ToggleButton>
-			<ToggleButton text="Download" contentDisplay="TOP" onAction="#showDownload">
+			<ToggleButton text="Download" contentDisplay="TOP" onAction="#showDownload" toggleGroup="$sidebarGroup">
 				<graphic>
 					<Label text="⬇️" />
 				</graphic>
 			</ToggleButton>
-			<Region fx:id="spacer" VBox.vgrow="ALWAYS"/>
-			<ToggleButton text="Settings" contentDisplay="TOP" onAction="#showSettings">
+			<Region VBox.vgrow="ALWAYS"/>
+			<ToggleButton text="Settings" contentDisplay="TOP" onAction="#showSettings" toggleGroup="$sidebarGroup">
 				<graphic>
 					<Label text="⚙️" />
 				</graphic>
 			</ToggleButton>
-			<ToggleButton text="Exit" contentDisplay="TOP" onAction="#onExit">
+			<ToggleButton text="Exit" contentDisplay="TOP" onAction="#onExit" toggleGroup="$sidebarGroup">
 				<graphic>
 					<Label text="👋" />
 				</graphic>
