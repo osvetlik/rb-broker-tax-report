@@ -9,12 +9,13 @@ import lombok.RequiredArgsConstructor;
 @Getter
 public enum SupportedLanguage {
 
-	CZECH(Locale.of("cs_CZ"), "Česky", "🇨🇿"),
-	ENGLISH(Locale.ENGLISH, "English", "🇬🇧"),
-	GERMAN(Locale.GERMAN, "Deutsch", "🇩🇪");
+	CZECH(Locale.of("cs", "CZ"), "Česky"),
+	ENGLISH(Locale.UK, "English"),
+	GERMAN(Locale.GERMANY, "Deutsch");
+
+	public static final SupportedLanguage FALLBACK = CZECH;
 
 	private final Locale locale;
 	private final String name;
-	private final String flag;
 
 }
