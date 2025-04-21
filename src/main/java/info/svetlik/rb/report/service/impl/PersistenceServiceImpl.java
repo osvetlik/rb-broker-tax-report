@@ -74,6 +74,7 @@ public class PersistenceServiceImpl implements PersistenceService {
 	@Override
 	public void writeConfiguration(Path configPath, ReporterConfigurationProperties configurationProperties)
 			throws IOException {
+		Files.createDirectories(configPath.getParent());
 		try (final var os = Files.newOutputStream(configPath)) {
 			objectMapper.writeValue(os, configurationProperties);
 		}

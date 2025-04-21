@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import info.svetlik.rb.report.ui.desktop.main.MainController;
 import info.svetlik.rb.report.ui.desktop.settings.SettingsController;
+import info.svetlik.rb.report.ui.support.StageHolderAdmin;
 import info.svetlik.rb.report.ui.support.ViewRegistry;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -29,6 +30,7 @@ import lombok.RequiredArgsConstructor;
 public class MainControllerImpl implements MainController, Initializable {
 
 	private final ViewRegistry viewRegistry;
+	private final StageHolderAdmin stageHolderAdmin;
 
 	private Node homeView;
 	private Node downloadView;
@@ -109,6 +111,7 @@ public class MainControllerImpl implements MainController, Initializable {
 	@Override
 	public void setStage(Stage stage) {
 		this.stage = stage;
+		stageHolderAdmin.setStage(stage);
 		this.stage.centerOnScreen();
 		this.stage.setMaximized(true);
 		stage.setOnCloseRequest(e -> {

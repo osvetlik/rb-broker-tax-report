@@ -39,7 +39,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 		final var current = loaded != null
 				? loaded
 				: new ReporterConfigurationProperties(DEFAULT_DATA_FOLDER_PATH,
-						new ImapConfigurationProperties(null, null, null));
+						new ImapConfigurationProperties(null, 993, null));
 
 		configurationHolderAdmin.replaceConfiguration(current);
 	}
