@@ -6,6 +6,7 @@ import java.util.ResourceBundle;
 
 import org.springframework.stereotype.Component;
 
+import info.svetlik.rb.report.ui.desktop.download.DownloadController;
 import info.svetlik.rb.report.ui.desktop.main.MainController;
 import info.svetlik.rb.report.ui.desktop.settings.SettingsController;
 import info.svetlik.rb.report.ui.support.StageHolderAdmin;
@@ -50,9 +51,9 @@ public class MainControllerImpl implements MainController, Initializable {
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
 		this.homeView = viewRegistry.view("HomeView", null).root();
-		this.downloadView = viewRegistry.view("DownloadView", null).root();
+		this.downloadView = viewRegistry.view("DownloadView", DownloadController.class).root();
 		this.settingsView = viewRegistry.view("SettingsView", SettingsController.class).root();
-		contentArea.getChildren().setAll(settingsView);
+		contentArea.getChildren().setAll(downloadView);
 
 		sidebarGroup.getToggles().stream()
 			.filter(t -> ToggleButton.class.isAssignableFrom(t.getClass()))

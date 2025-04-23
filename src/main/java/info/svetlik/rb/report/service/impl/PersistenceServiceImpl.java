@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,9 +21,11 @@ import info.svetlik.rb.report.service.PersistenceService;
 import info.svetlik.rb.report.support.checksum.ChecksummingInputStream;
 import info.svetlik.rb.report.support.checksum.ChecksummingStream.DigestAlgorithm;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PersistenceServiceImpl implements PersistenceService {
 
 	private static final TypeReference<Map<String, List<AttachmentInfo>>> EXISTING_MESSAGES_TYPE =
@@ -36,6 +39,10 @@ public class PersistenceServiceImpl implements PersistenceService {
 		final var folder = configurationHolder.configuration().workingDir();
 		final var storePath = folder.resolve(filename);
 
+		if (!Files.exists(storePath)) {
+			return new HashMap<>();
+		}
+
 		try (final var is = Files.newInputStream(storePath)) {
 			return objectMapper.readValue(is, EXISTING_MESSAGES_TYPE);
 		}
@@ -44,6 +51,7 @@ public class PersistenceServiceImpl implements PersistenceService {
 	@Override
 	public void writeExistingMessages(String filename, Map<String, List<AttachmentInfo>> messages) throws IOException {
 		final var folder = configurationHolder.configuration().workingDir();
+		Files.createDirectories(folder);
 		final var storePath = folder.resolve(filename);
 
 		try (final var os = Files.newOutputStream(storePath)) {
@@ -55,6 +63,9 @@ public class PersistenceServiceImpl implements PersistenceService {
 	public String saveAttachment(final InputStream is, final String filename) throws IOException {
 		try (final var cis = new ChecksummingInputStream(is, DigestAlgorithm.MD5)) {
 			final var target = configurationHolder.configuration().workingDir().resolve(filename);
+			if (Files.exists(target)) {
+				log.warn("File already exists, overwriting: {}", target);
+			}
 			Files.copy(cis, target, StandardCopyOption.REPLACE_EXISTING);
 			return cis.hexDigest();
 		}
