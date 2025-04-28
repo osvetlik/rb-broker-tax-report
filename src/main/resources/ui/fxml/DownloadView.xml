@@ -10,7 +10,7 @@
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.ProgressBar?>
 <StackPane xmlns:fx="http://javafx.com/fxml">
-	<VBox styleClass="vbox">
+	<VBox>
     <Label text="Download" styleClass="header"/>
     <Separator orientation="HORIZONTAL" />
 		<Region VBox.vgrow="ALWAYS"/>
