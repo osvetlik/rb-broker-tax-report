@@ -1,26 +1,28 @@
 package info.svetlik.rb.report.pdf;
 
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
 public enum OperationType {
 
-	PURCHASE("TCT_TRE_OT\\d+-TR\\d+-T\\d+_\\d+\\.pdf"),
-	SALE("TCT_TRE_OT\\d+_\\d+\\.pdf");
+	PURCHASE("purchase", 1),
+	SALE("sell", -1);
 
-	private OperationType(String regex) {
-		this.pattern = Pattern.compile(regex);
+	private final String operationTextValue;
+
+	@Getter
+	private final int feesCommissionsOperation;
+
+	private final boolean matches(String value) {
+		return this.operationTextValue.equals(value);
 	}
 
-	private final Pattern pattern;
-
-	private boolean matches(String fileName) {
-		return pattern.matcher(fileName).matches();
-	}
-
-	public static OperationType fromFileName(String fileName) {
+	public static OperationType fromOperationText(String operationText) {
 		return Stream.of(values())
-				.filter(ot -> ot.matches(fileName))
+				.filter(ot -> ot.matches(operationText))
 				.findAny()
 				.orElse(null);
 	}

@@ -2,9 +2,10 @@ package info.svetlik.rb.report.pdf;
 
 import java.time.LocalDate;
 
-public interface MarketOperation {
+import lombok.Builder;
 
-	LocalDate operationDate();
-	String isin();
+@Builder(toBuilder = true)
+public record MarketOperation(OperationType operationType, LocalDate operationDate, String isin, Currency currency,
+		double totalAmount) {
 
 }

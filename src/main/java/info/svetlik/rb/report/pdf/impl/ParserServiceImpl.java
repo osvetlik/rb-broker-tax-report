@@ -20,10 +20,11 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Service;
 
 import info.svetlik.rb.report.configuration.ConfigurationHolder;
+import info.svetlik.rb.report.pdf.FileFormat;
 import info.svetlik.rb.report.pdf.MarketOperation;
 import info.svetlik.rb.report.pdf.OperationParser;
-import info.svetlik.rb.report.pdf.OperationType;
 import info.svetlik.rb.report.pdf.ParserService;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -31,29 +32,46 @@ import lombok.extern.slf4j.Slf4j;
 public class ParserServiceImpl implements ParserService {
 
 	private static final OperationParser NOOP = new NoopOperationParser();
+	protected static final double AMOUNT_SANITY_CHECK = 0.01;
 
 	private final ConfigurationHolder configurationHolder;
-	private final Map<OperationType, OperationParser> operationParsers;
+	private final Map<FileFormat, OperationParser> operationParsers;
 
 	private final PDFTextStripper pdfTextStripper = new PDFTextStripper();
+
+	@Builder
+	private record MarketOperationInformation(MarketOperation marketOperation, File file, String text) {}
 
 	public ParserServiceImpl(ConfigurationHolder configurationHolder, Collection<OperationParser> operationParsers) {
 		this.configurationHolder = configurationHolder;
 		this.operationParsers = operationParsers.stream()
-				.collect(Collectors.toMap(OperationParser::operationType,
-						Function.identity(), (a1, a2) -> a1, () -> new EnumMap<>(OperationType.class)));
+				.collect(Collectors.toMap(OperationParser::fileFormat,
+						Function.identity(), (a1, a2) -> a1, () -> new EnumMap<>(FileFormat.class)));
 	}
 
 	@Override
 	public Map<LocalDate, List<MarketOperation>> parse() {
 		final var workDir = configurationHolder.configuration().workingDir();
 		try (final var fileStream = Files.list(workDir)) {
-			return fileStream
+			final var operationsInfo = fileStream
 				.filter(p -> p.toString().toLowerCase().endsWith(".pdf"))
 				.map(Path::toFile)
 				.map(this::extractTextFromPdf)
-				.filter(Objects::nonNull)
-				.collect(Collectors.groupingBy(MarketOperation::operationDate));
+				.toList();
+
+			operationsInfo.stream()
+				.forEach(this::sanityCheck);
+
+			final var result = operationsInfo.stream()
+					.map(MarketOperationInformation::marketOperation)
+					.filter(Objects::nonNull)
+					.collect(Collectors.groupingBy(MarketOperation::operationDate));
+
+			result.values().stream()
+				.flatMap(List::stream)
+				.forEach(this::debug);
+
+			return result;
 		} catch (IOException e) {
 			log.warn("Unable to list files from {}", workDir, e);
 		}
@@ -61,17 +79,20 @@ public class ParserServiceImpl implements ParserService {
 		return Collections.emptyMap(); // Will be a RuntimeException instead
 	}
 
-	private MarketOperation extractTextFromPdf(File pdf) {
+	private MarketOperationInformation extractTextFromPdf(File pdf) {
 		log.info("Processing {}", pdf.getName());
 		final var fileName = pdf.getName();
-		final var operationType = OperationType.fromFileName(fileName);
+		final var fileFormat = FileFormat.fromFileName(fileName);
+		final var builder = MarketOperationInformation.builder();
+		builder.file(pdf);
 
-		if (operationType != null) {
+		if (fileFormat != null) {
 			try (final var document = Loader.loadPDF(pdf)) {
 				final String text = pdfTextStripper.getText(document);
-				final var operation = operationParsers.getOrDefault(operationType, NOOP).parse(text);
+				builder.text(text);
+				final var operation = operationParsers.getOrDefault(fileFormat, NOOP).parse(text);
 				log.info("Found operation: {}", operation);
-				return operation;
+				builder.marketOperation(operation);
 			}
 			catch (IOException e) {
 				log.warn("Cannot load PDF {}", fileName, e);
@@ -81,13 +102,29 @@ public class ParserServiceImpl implements ParserService {
 			log.info("Unknown file type: {}", fileName);
 		}
 
-		return null;
+		return builder.build();
+	}
+
+	private void sanityCheck(MarketOperationInformation marketOperationInformation) {
+		final var marketOperation = marketOperationInformation.marketOperation();
+		if (marketOperation != null && (marketOperation.currency() == null
+					|| marketOperation.isin() == null
+					|| marketOperation.operationDate() == null
+					|| marketOperation.operationType() == null
+					|| marketOperation.totalAmount() == 0.0)) {
+			log.warn("Incomplete operation:\n{}\n{}\n{}", marketOperationInformation.file().getName(),
+					marketOperationInformation.text(), marketOperation);
+		}
+	}
+
+	private void debug(MarketOperation marketOperation) {
+		log.info("\n{}", marketOperation);
 	}
 
 	private static class NoopOperationParser extends OperationParser {
 
 		@Override
-		public OperationType operationType() {
+		public FileFormat fileFormat() {
 			return null;
 		}
 
