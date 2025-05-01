@@ -7,11 +7,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -50,7 +52,7 @@ public class ParserServiceImpl implements ParserService {
 	}
 
 	@Override
-	public Map<LocalDate, List<MarketOperation>> parse() {
+	public NavigableMap<LocalDate, List<MarketOperation>> parse() {
 		final var workDir = configurationHolder.configuration().workingDir();
 		try (final var fileStream = Files.list(workDir)) {
 			final var operationsInfo = fileStream
@@ -65,10 +67,10 @@ public class ParserServiceImpl implements ParserService {
 			final var result = operationsInfo.stream()
 					.map(MarketOperationInformation::marketOperation)
 					.filter(Objects::nonNull)
-					.collect(Collectors.groupingBy(MarketOperation::operationDate));
+					.collect(Collectors.groupingBy(MarketOperation::operationDate,
+							() -> new TreeMap<>(Comparator.naturalOrder()), Collectors.toList()));
 
-			result.values().stream()
-				.flatMap(List::stream)
+			result.entrySet().stream()
 				.forEach(this::debug);
 
 			return result;
@@ -76,7 +78,7 @@ public class ParserServiceImpl implements ParserService {
 			log.warn("Unable to list files from {}", workDir, e);
 		}
 
-		return Collections.emptyMap(); // Will be a RuntimeException instead
+		return new TreeMap<>(); // Will be a RuntimeException instead
 	}
 
 	private MarketOperationInformation extractTextFromPdf(File pdf) {
@@ -111,14 +113,17 @@ public class ParserServiceImpl implements ParserService {
 					|| marketOperation.isin() == null
 					|| marketOperation.operationDate() == null
 					|| marketOperation.operationType() == null
-					|| marketOperation.totalAmount() == 0.0)) {
+					|| marketOperation.totalAmount() == 0.0
+					|| marketOperation.quantity() == 0.0)) {
 			log.warn("Incomplete operation:\n{}\n{}\n{}", marketOperationInformation.file().getName(),
 					marketOperationInformation.text(), marketOperation);
 		}
 	}
 
-	private void debug(MarketOperation marketOperation) {
-		log.info("\n{}", marketOperation);
+	private void debug(Map.Entry<LocalDate, List<MarketOperation>> marketOperations) {
+		log.info("\n\n{}\n", marketOperations.getKey());
+		marketOperations.getValue().stream()
+			.forEach(mo -> log.info("\n{}", mo));
 	}
 
 	private static class NoopOperationParser extends OperationParser {

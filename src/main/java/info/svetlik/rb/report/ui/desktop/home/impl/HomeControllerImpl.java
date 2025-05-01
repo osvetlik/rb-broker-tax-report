@@ -2,7 +2,7 @@ package info.svetlik.rb.report.ui.desktop.home.impl;
 
 import org.springframework.stereotype.Component;
 
-import info.svetlik.rb.report.pdf.ParserService;
+import info.svetlik.rb.report.service.TaxReportService;
 import info.svetlik.rb.report.ui.desktop.home.HomeController;
 import javafx.application.Platform;
 import lombok.RequiredArgsConstructor;
@@ -11,11 +11,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class HomeControllerImpl implements HomeController {
 
-	private final ParserService parserService;
+	private final TaxReportService taxReportService;
 
 	@Override
 	public void onGenerate() {
-		Platform.runLater(parserService::parse);
+		Platform.runLater(taxReportService::report);
 	}
 
 }

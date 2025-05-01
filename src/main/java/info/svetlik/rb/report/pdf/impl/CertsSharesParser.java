@@ -58,6 +58,8 @@ public class CertsSharesParser extends OperationParser {
 		builder.totalAmount(totalAmount);
 		final var currency = Currency.valueOf(amountsMatcher.group(7));
 		builder.currency(currency);
+		final var quantity = PDF_NUMBER_FORMAT.parse(amountsMatcher.group(1)).doubleValue();
+		builder.quantity(quantity);
 
 		return builder.build();
 	}

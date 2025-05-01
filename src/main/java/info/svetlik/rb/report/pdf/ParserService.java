@@ -2,10 +2,10 @@ package info.svetlik.rb.report.pdf;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
+import java.util.NavigableMap;
 
 public interface ParserService {
 
-	Map<LocalDate, List<MarketOperation>> parse();
+	NavigableMap<LocalDate, List<MarketOperation>> parse();
 
 }
