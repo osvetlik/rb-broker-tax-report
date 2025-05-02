@@ -114,7 +114,7 @@ public class ParserServiceImpl implements ParserService {
 					|| marketOperation.operationDate() == null
 					|| marketOperation.operationType() == null
 					|| marketOperation.totalAmount() == 0.0
-					|| marketOperation.quantity() == 0.0)) {
+					|| marketOperation.quantity() == null)) {
 			log.warn("Incomplete operation:\n{}\n{}\n{}", marketOperationInformation.file().getName(),
 					marketOperationInformation.text(), marketOperation);
 		}

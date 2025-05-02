@@ -1,12 +1,18 @@
 package info.svetlik.rb.report.service.impl;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.Year;
 import java.time.YearMonth;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -21,8 +27,10 @@ import cz.cnb.api.model.ExRateDailyCurrencyMonthResponse;
 import cz.cnb.api.model.ExRateSelectedRest;
 import info.svetlik.rb.report.pdf.Currency;
 import info.svetlik.rb.report.pdf.MarketOperation;
+import info.svetlik.rb.report.pdf.OperationType;
 import info.svetlik.rb.report.pdf.ParserService;
 import info.svetlik.rb.report.service.TaxReportService;
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,24 +40,131 @@ import lombok.extern.slf4j.Slf4j;
 public class TaxReportServiceImpl implements TaxReportService {
 
 	private static final List<Currency> NEED_EX_RATES = List.of(Currency.EUR, Currency.USD);
+	private static final MathContext FOR_DIVISION = new MathContext(10, RoundingMode.HALF_UP);
 
 	private final ParserService parserService;
 	private final ExratesApi exratesApi;
 
 	private record RateMonthRecord(YearMonth yearMonth, Currency currency, ExRateDailyCurrencyMonthResponse exRates) {}
 	private record CurrencyRates(Currency currency, List<ExRateSelectedRest> rates) {}
+	private record PurchasesSales(List<MarketOperation> purchases, List<MarketOperation> sales) {}
+
+	@Builder(toBuilder = true)
+	private record InvestmentResults(Year year, String isin, double purchasedFor, double soldFor) {}
 
 	@Override
 	public void report() {
 		final var operations = parserService.parse();
 		final var czkOperations = convertToCzk(operations);
-
+		log.info("Reporting after CZK conversion.");
 		czkOperations.values().stream()
-			.flatMap(List::stream)
-			.forEach(op -> log.info("\n{}", op));
+			.forEach(this::reportCzk);
+
+		final var purchasesSales = splitToPurchasesAndSales(czkOperations);
+		final var sales = purchasesSales.sales();
+		log.info("Reporting just sales.");
+		reportCzk(sales);
+		final var purchases = organizeByIsin(purchasesSales.purchases());
+
+		final var results = new TreeMap<Year, Map<String, InvestmentResults>>(Comparator.naturalOrder());
+		results.putAll(analyzeResults(purchases, sales));
+
+		results.entrySet().stream()
+			.forEach(this::reportYear);
 	}
 
-	private TreeMap<LocalDate, List<MarketOperation>> convertToCzk(
+	private void reportCzk(List<MarketOperation> operations) {
+		operations.forEach(op -> log.info("\n{}", op));
+	}
+
+	private void reportYear(Map.Entry<Year, Map<String, InvestmentResults>> yearResultsEntry) {
+		log.info("Year: {}", yearResultsEntry.getKey());
+		yearResultsEntry.getValue().values().forEach(this::reportInvestmentResults);
+		final var yearSummary = yearResultsEntry.getValue().values().stream()
+				.collect(Collectors.reducing(this::sum)) // This effectively destroys the data, only amounts stay valid
+				.get();
+		log.info("\nTotal for {}      \tpurchased for: {}\tsold for: {}\tresult: {}", yearResultsEntry.getKey(),
+				yearSummary.purchasedFor(), yearSummary.soldFor(),
+				yearSummary.soldFor() - yearSummary.purchasedFor());
+	}
+
+	private void reportInvestmentResults(InvestmentResults investmentResults) {
+		log.info("\nISIN: {}\tpurchased for: {}\tsold for: {}\tresult: {}", investmentResults.isin(),
+				investmentResults.purchasedFor(), investmentResults.soldFor(),
+				investmentResults.soldFor() - investmentResults.purchasedFor());
+	}
+
+	private Map<Year, Map<String, InvestmentResults>> analyzeResults(
+			Map<String, NavigableMap<LocalDate, MarketOperation>> purchases, List<MarketOperation> sales) {
+		return sales.stream()
+				.map(sale -> sell(purchases.get(sale.isin()), sale))
+				.collect(Collectors.groupingBy(InvestmentResults::year, Collectors.groupingBy(InvestmentResults::isin,
+						Collectors.collectingAndThen(Collectors.reducing(this::sum), Optional::get))));
+	}
+
+	private InvestmentResults sum(InvestmentResults ir1, InvestmentResults ir2) {
+		return ir1.toBuilder()
+				.purchasedFor(ir1.purchasedFor() + ir2.purchasedFor())
+				.soldFor(ir1.soldFor() + ir2.soldFor())
+				.build();
+	}
+
+	private InvestmentResults sell(NavigableMap<LocalDate, MarketOperation> purchases, MarketOperation sale) {
+		var remainingQuantity = sale.quantity();
+		var purchasedFor = 0.0;
+		while (remainingQuantity.compareTo(BigDecimal.ZERO) > 0) {
+			final var purchase = purchases.pollFirstEntry().getValue();
+			// Sanity checks
+			if (purchase == null || purchase.operationDate().isAfter(sale.operationDate())) {
+				throw new IllegalStateException();
+			}
+			final var purchased = purchase.quantity();
+			if (purchased.compareTo(remainingQuantity) > 0) {
+				final var ratio = remainingQuantity.divide(purchased, FOR_DIVISION).doubleValue();
+				purchasedFor += ratio * purchase.totalAmount();
+
+				final var remainingPurchase = purchase.toBuilder()
+						.quantity(purchase.quantity().subtract(remainingQuantity))
+						.totalAmount(purchase.totalAmount() - purchasedFor)
+						.build();
+				remainingQuantity = BigDecimal.ZERO;
+				purchases.put(remainingPurchase.operationDate(), remainingPurchase);
+			}
+			else {
+				remainingQuantity = remainingQuantity.subtract(purchased);
+				purchasedFor += purchase.totalAmount();
+			}
+		}
+
+		return new InvestmentResults(Year.of(sale.operationDate().getYear()), sale.isin(), purchasedFor,
+				sale.totalAmount());
+	}
+
+	private PurchasesSales splitToPurchasesAndSales(NavigableMap<LocalDate, List<MarketOperation>> operations) {
+		final var split = operations.values().stream()
+				.flatMap(List::stream)
+				.collect(Collectors.groupingBy(MarketOperation::operationType));
+		return new PurchasesSales(split.getOrDefault(OperationType.PURCHASE, Collections.emptyList()),
+				split.getOrDefault(OperationType.SALE, Collections.emptyList()));
+	}
+
+	private Map<String, NavigableMap<LocalDate, MarketOperation>> organizeByIsin(
+			List<MarketOperation> purchases) {
+		return purchases.stream()
+				.collect(Collectors.groupingBy(MarketOperation::isin,
+						Collectors.groupingBy(MarketOperation::operationDate,
+								() -> new TreeMap<>(Comparator.naturalOrder()),
+								Collectors.collectingAndThen(Collectors.reducing(this::sum), Optional::get))));
+	}
+
+	private MarketOperation sum(MarketOperation mo1, MarketOperation mo2) {
+		return mo1.toBuilder()
+				.totalAmount(mo1.totalAmount() + mo2.totalAmount())
+				.quantity(mo1.quantity().add(mo2.quantity()))
+				.build();
+	}
+
+	private NavigableMap<LocalDate, List<MarketOperation>> convertToCzk(
 			final NavigableMap<LocalDate, List<MarketOperation>> operations) {
 		final var necessaryMonths = operations.values().stream()
 				.flatMap(List::stream)

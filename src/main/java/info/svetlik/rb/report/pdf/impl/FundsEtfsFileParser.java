@@ -57,7 +57,7 @@ public class FundsEtfsFileParser extends OperationParser {
 		builder.isin(isin);
 
 		final var quantityMatcher = findLineWith(br, QUANTITY_LINE_PATTERN);
-		final var quantity = PDF_NUMBER_FORMAT.parse(quantityMatcher.group(1)).doubleValue();
+		final var quantity = parseBd(quantityMatcher.group(1));
 		builder.quantity(quantity);
 
 		findLineWith(br, TOTAL_AMOUNT_FINDER_PATTERN);

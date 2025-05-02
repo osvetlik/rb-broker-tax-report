@@ -3,9 +3,9 @@ package info.svetlik.rb.report.pdf;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
-import java.text.NumberFormat;
 import java.text.ParseException;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -28,7 +28,7 @@ public abstract class OperationParser {
 	protected static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern(DATE_PATTERN);
 
 	protected static final DecimalFormatSymbols PDF_NUMBER_FORMAT_SYMBOLS;
-	protected static final NumberFormat PDF_NUMBER_FORMAT;
+	protected static final DecimalFormat PDF_NUMBER_FORMAT;
 
 	static {
 		PDF_NUMBER_FORMAT_SYMBOLS = new DecimalFormatSymbols();
@@ -37,6 +37,7 @@ public abstract class OperationParser {
 		PDF_NUMBER_FORMAT = new DecimalFormat("#,##0.#", PDF_NUMBER_FORMAT_SYMBOLS);
 		PDF_NUMBER_FORMAT.setGroupingUsed(true);
 		PDF_NUMBER_FORMAT.setParseIntegerOnly(false);
+		PDF_NUMBER_FORMAT.setParseBigDecimal(true);
 	}
 
 	/**
@@ -74,6 +75,10 @@ public abstract class OperationParser {
 		}
 
 		throw new UnexpectedFormatException();
+	}
+
+	protected BigDecimal parseBd(String number) throws ParseException {
+		return (BigDecimal) PDF_NUMBER_FORMAT.parse(number);
 	}
 
 }
